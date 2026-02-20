@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geo Expansion Decision Framework</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F2EE;
+    --surface: #FFFFFF;
+    --text-primary: #1A1A1A;
+    --text-secondary: #5C5C5C;
+    --text-muted: #8C8C8C;
+    --border: #DDD9D2;
+    --border-hover: #C4C0B9;
+    --accent: #2C2C2C;
+    --strong-bg: #E8F5E9; --strong-border: #2E7D32; --strong-text: #1B5E20;
+    --positive-bg: #E3F2FD; --positive-border: #1565C0; --positive-text: #0D47A1;
+    --neutral-bg: #FFF8E1; --neutral-border: #F9A825; --neutral-text: #E65100;
+    --caution-bg: #FFF3E0; --caution-border: #E65100; --caution-text: #BF360C;
+    --warning-bg: #FFEBEE; --warning-border: #C62828; --warning-text: #B71C1C;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Satoshi', sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  .outer-wrapper { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+  .main-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 52px 40px; position: relative; overflow: hidden; }
+  .main-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent) 0%, var(--border) 100%); }
+  .header-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 24px; }
+  .header-title { font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 40px; }
+  .header-intro { font-size: 15px; color: var(--text-secondary); line-height: 1.75; }
+  .header-intro p { margin-bottom: 20px; }
+  .header-intro p:last-child { margin-bottom: 0; }
+  .progress-container { display: flex; align-items: center; gap: 14px; margin: 0 -40px; padding: 14px 40px; position: sticky; top: 0; background: var(--surface); z-index: 10; }
+  .progress-bar-wrap { flex: 1; height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s ease; }
+  .progress-step-count { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  .phase-header { margin-top: 48px; padding: 14px 0; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: baseline; }
+  .phase-title { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-primary); }
+  .phase-question { font-size: 13px; font-style: italic; color: var(--text-secondary); }
+  .section-divider { display: none; }
+  .input-section { padding: 28px 0; }
+  .input-step-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .input-section-title { font-size: 19px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; margin-bottom: 16px; }
+  .input-intro { font-size: 14px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 28px; }
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+  .input-group { display: flex; flex-direction: column; gap: 5px; }
+  .input-group.full-width { grid-column: 1 / -1; }
+  .input-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.02em; }
+  .input-field { font-family: 'Satoshi', sans-serif; font-size: 15px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text-primary); transition: border-color 0.15s, box-shadow 0.15s; outline: none; }
+  .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(44,44,44,0.06); }
+  .input-field::placeholder { color: var(--text-muted); }
+  .metrics-bar { display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; padding-top: 20px; border-top: 1px solid var(--border); margin-bottom: 12px; animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .metrics-bar.visible { display: grid; }
+  .metric { text-align: center; padding: 16px 10px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+  .metric-value { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; letter-spacing: -0.02em; }
+  .metric-label { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; }
+  .ratio-insight { display: none; padding: 12px 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; border-left: 3px solid; animation: slideUp 0.3s ease; }
+  .ratio-insight.visible { display: block; }
+  .step-card { margin-top: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); overflow: hidden; transition: all 0.2s; }
+  .step-card.expanded { border-color: var(--border-hover); box-shadow: 0 2px 12px rgba(0,0,0,0.04); background: var(--surface); }
+  .step-header { padding: 16px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; transition: background 0.1s; }
+  .step-header:hover { background: rgba(0,0,0,0.01); }
+  .step-header-left { display: flex; align-items: center; gap: 14px; }
+  .step-number { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--text-muted); border: 1.5px solid var(--border); transition: all 0.3s; flex-shrink: 0; }
+  .step-title-text { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+  .step-preview { font-size: 12px; margin-top: 2px; font-weight: 500; }
+  .chevron { font-size: 14px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; }
+  .chevron.open { transform: rotate(180deg); }
+  .step-body { padding: 0 24px 24px; display: none; }
+  .step-card.expanded .step-body { display: block; }
+  .step-question { font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; line-height: 1.35; letter-spacing: -0.01em; }
+  .step-context { font-size: 14px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 10px; }
+  .step-why { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px; padding: 14px 18px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--border-hover); }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-card { padding: 14px 16px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); cursor: pointer; transition: all 0.15s; position: relative; }
+  .option-card:hover { border-color: var(--border-hover); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .option-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 8px 0 0 8px; opacity: 0.3; transition: opacity 0.15s; }
+  .option-card:hover::before { opacity: 0.6; }
+  .option-card.signal-strong::before { background: var(--strong-border); }
+  .option-card.signal-positive::before { background: var(--positive-border); }
+  .option-card.signal-neutral::before { background: var(--neutral-border); }
+  .option-card.signal-caution::before { background: var(--caution-border); }
+  .option-card.signal-warning::before { background: var(--warning-border); }
+  .option-card.selected::before { opacity: 1; }
+  .option-card.selected { transform: none; box-shadow: none; }
+  .option-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .option-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .option-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; }
+  .option-card.selected .option-badge { opacity: 1; }
+  .option-detail { margin-top: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.65; display: none; animation: slideUp 0.2s ease; }
+  .option-invest { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: none; animation: slideUp 0.2s ease; }
+  .option-card.selected .option-detail, .option-card.selected .option-invest { display: block; }
+  .calc-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .calc-result { display: none; padding: 20px; border-radius: 8px; margin-top: 16px; text-align: center; animation: slideUp 0.3s ease; }
+  .calc-result.visible { display: block; }
+  .calc-result-number { font-size: 34px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.03em; }
+  .calc-result-label { font-size: 13px; color: var(--text-secondary); }
+  .calc-interpretation { display: none; margin-top: 10px; padding: 14px 18px; border-radius: 6px; border-left: 3px solid; font-size: 13px; line-height: 1.65; animation: slideUp 0.3s ease; }
+  .calc-interpretation.visible { display: block; }
+  .running-score { display: none; margin-top: 20px; padding: 14px 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; justify-content: space-between; align-items: center; }
+  .running-score.visible { display: flex; }
+  .score-track { height: 4px; width: 160px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .score-fill { height: 100%; width: 0%; border-radius: 2px; transition: width 0.6s ease, background 0.3s; }
+  .score-meta { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .score-probability { font-size: 14px; font-weight: 700; }
+  .recommendation { display: none; margin-top: 24px; border-radius: 12px; border: 2px solid; overflow: hidden; animation: recReveal 0.6s ease; }
+  .recommendation.visible { display: block; }
+  @keyframes recReveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .rec-header { padding: 28px 28px 0; }
+  .rec-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .rec-verdict { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .rec-body { padding: 0 28px 28px; }
+  .rec-detail { font-size: 14px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 24px; }
+
+  /* ── Visuals row ── */
+  .visuals-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .visual-panel { background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.07); border-radius: 10px; padding: 22px 18px 18px; display: flex; flex-direction: column; align-items: center; }
+  .panel-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; align-self: flex-start; }
+  .gauge-center { text-align: center; margin-top: 4px; }
+  .gauge-pct-num { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; display: block; }
+  .gauge-pct-unit { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; display: block; }
+  .gauge-ends { display: flex; justify-content: space-between; width: 100%; margin-top: 8px; padding: 0 2px; }
+  .gauge-end-label { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .radar-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: center; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+  .legend-pip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .signal-map { margin-bottom: 20px; }
+  .signal-map-label { font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .signal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .signal-tag { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 10px; border: 1px solid; }
+  .rec-actions { display: flex; gap: 10px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08); }
+  .btn { font-family: 'Satoshi', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.15s; border: none; }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-primary { color: #FFF; }
+  .btn-secondary { background: transparent; border: 1.5px solid; }
+  .footer { margin-top: 48px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  @media (max-width: 600px) {
+    .main-card { padding: 32px 20px; }
+    .header-title { font-size: 24px; margin-bottom: 32px; }
+    .input-grid, .calc-input-row { grid-template-columns: 1fr; }
+    .metrics-bar { grid-template-columns: repeat(2, 1fr); }
+    .progress-container { margin: 0 -20px; padding: 14px 20px; }
+    .outer-wrapper { padding: 20px 12px 60px; }
+    .phase-header { flex-direction: column; gap: 4px; }
+    .visuals-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="outer-wrapper">
+  <div class="main-card">
+    <div class="header-eyebrow">Geo Expansion Decision Framework</div>
+    <h1 class="header-title">Should You Expand Into This Region?</h1>
+    <div class="header-intro">
+      <p>Geographic expansion is a high-stakes capital allocation decision — because it is a bet on unit economics at scale. Every dollar deployed assumes your regional unit economics will eventually become repeatable (you can find more customers like these), scalable (the economics hold at volume), and predictable (you can forecast the return).</p>
+      <p>This framework stress-tests how your signals converge across three phases: demand quality, operating economics, and opportunity cost, and gives you a clear thesis to orient your expansion decision.</p>
+    </div>
+    <div class="progress-container" id="progressBar"></div>
+    <hr class="section-divider">
+    <div class="phase-header" style="margin-top: 32px;">
+      <span class="phase-title">Phase 1: Demand Quality</span>
+    </div>
+    <div class="input-section" id="inputSection">
+      <div class="input-step-label">Step 1</div>
+      <div class="input-section-title">Customer Economics</div>
+      <div class="input-intro">Before you ask "should we go there?", ask "what business are we actually running there?" Revenue hides more than it reveals. One customer generating all revenue is not a market — it's an account. One hundred customers generating the same revenue is a market with thin economics. Both show revenue. Only one shows a market.<br><br>This section calculates your regional Average Contract Value (ACV) against your company-wide average. Enter your revenue and logo counts — total and regional — to establish your customer economics baseline. Every diagnostic that follows is measured against this ACV.</div>
+      <div class="input-grid">
+        <div class="input-group full-width"><label class="input-label">Region Name</label><input class="input-field" type="text" id="regionName" placeholder='e.g. "EMEA," "UK," "APAC," "LATAM"'></div>
+        <div class="input-group"><label class="input-label">Total Annual Company Revenue ($)</label><input class="input-field" type="text" id="totalRevenue" placeholder="e.g. 10,000,000" inputmode="numeric"></div>
+        <div class="input-group"><label class="input-label">Annual Revenue from Target Region ($)</label><input class="input-field" type="text" id="regionRevenue" placeholder="e.g. 1,200,000" inputmode="numeric"></div>
+        <div class="input-group"><label class="input-label">Total Customer Logos</label><input class="input-field" type="text" id="totalLogos" placeholder="e.g. 500" inputmode="numeric"></div>
+        <div class="input-group"><label class="input-label">Customer Logos in Target Region</label><input class="input-field" type="text" id="regionLogos" placeholder="e.g. 40" inputmode="numeric"></div>
+      </div>
+      <div class="metrics-bar" id="metricsBar">
+        <div class="metric"><div class="metric-value" id="metricRevPct">—</div><div class="metric-label">Revenue Share</div></div>
+        <div class="metric"><div class="metric-value" id="metricLogoPct">—</div><div class="metric-label">Logo Share</div></div>
+        <div class="metric"><div class="metric-value" id="metricCompanyACV">—</div><div class="metric-label">Company ACV</div></div>
+        <div class="metric"><div class="metric-value" id="metricRegionalACV">—</div><div class="metric-label">Regional ACV</div></div>
+      </div>
+      <div class="ratio-insight" id="ratioInsight"></div>
+    </div>
+    <div id="stepsContainer"></div>
+    <div class="running-score" id="runningScore"><div><div class="score-meta" id="scoreLabel"></div><div class="score-track"><div class="score-fill" id="scoreFill"></div></div></div><div class="score-probability" id="scoreProbability">...</div></div>
+    <div class="recommendation" id="recommendation"></div>
+  </div>
+  <div class="footer">Geo Expansion Decision Framework — Bonnie Lau</div>
+</div>
+<script>
+const STEPS=[{id:"velocity",phase:1,stepNum:2,title:"Revenue Velocity",question:"How has this region\u2019s share of total revenue changed over the last 6\u201312 months?",context:"Pull the trend \u2014 not just the current number. Is this region gaining share of your overall revenue, holding steady, or losing ground?",why:"A growing share means organic momentum is pulling you into the market \u2014 the strongest foundation for an expansion bet. A flat share means organic demand has maxed out and growth requires active investment. A declining share needs diagnosis before it\u2019s an investment decision.",options:[{label:"Accelerating (share grew 50%+ in 6\u201312 months)",detail:"The market is choosing you. Organic momentum is building \u2014 the strongest foundation for an expansion bet. Investment here captures demand that\u2019s already accelerating.",score:.25,signal:"strong"},{label:"Steady growth (share increased, less than 50%)",detail:"Positive trajectory. Worth interrogating whether the trend is repeatable or driven by a few recent wins inflating the number.",score:.15,signal:"positive"},{label:"Flat (held steady for 6+ months)",detail:"Organic demand has a natural floor \u2014 but the passive approach has hit its ceiling. Growth from here requires active investment. The operating economics determine whether that investment makes sense.",score:.05,signal:"neutral"},{label:"Declining (share has dropped)",detail:"Diagnose before investing. Is the region shrinking in absolute revenue, or losing share as your core market grows faster? If absolute churn \u2014 fix retention first. If relative dilution \u2014 less alarming, but the region still needs a catalyst.",score:-.10,signal:"warning"}]},{id:"retention",phase:1,stepNum:3,title:"Retention & Expansion",question:"How does this region\u2019s Net Revenue Retention (NRR) compare to your overall NRR?",context:"NRR tells you whether customers in this region stick and grow, or close and erode. Compare regional NRR to your overall NRR \u2014 the gap tells you whether this region compounds or leaks.",why:"Retention is the foundation of your payback math. Strong NRR means every customer you acquire compounds in value \u2014 shortening your payback period and building durable revenue. Weak NRR means you\u2019re filling a leaky bucket \u2014 and investing in acquisition just scales the leak.",options:[{label:"Regional NRR \u2265 overall NRR",detail:"Customers here retain and expand at the same rate or better than your overall base. Product delivers sustained value. This shortens your payback period because each customer compounds.",score:.25,signal:"strong"},{label:"Regional NRR > 100% but below overall",detail:"Net positive \u2014 customers expand, but slower than your core market. Factor the lower expansion rate into your unit economics.",score:.10,signal:"positive"},{label:"Regional NRR 90\u2013100%",detail:"Customers stay but don\u2019t grow. No churn crisis, but no expansion engine. This limits LTV and extends payback \u2014 you\u2019re relying on initial ACV alone to carry the economics.",score:-.05,signal:"caution"},{label:"Regional NRR below 90%",detail:"Customers are churning. Investing in acquisition while customers leave scales the leak. Diagnose the churn before committing resources \u2014 is it product fit, support coverage, competitive displacement, or wrong-profile customers?",score:-.20,signal:"warning"}]},{id:"attribution",phase:1,stepNum:4,title:"Pipeline Attribution",question:"How are customers in this region finding you \u2014 and what does that tell you about the cost of acquiring the next 100?",context:"The channels that produce your current regional customers predict what it costs to scale. Organic is cheapest. Outbound is most expensive. The mix is your acquisition cost forecast.",why:"An organic-dominant region might need $200K to scale. An outbound-dominant region might need $800K for the same result. Same revenue target, completely different capital requirement \u2014 determined by how the first customers got here.",options:[{label:"Organic / inbound dominant (70%+)",detail:"Customers self-select through content, word of mouth, review sites, search. Demand exists. Scaling means amplifying what\u2019s already working.",score:.20,signal:"strong",invest:"Where to invest: Lowest acquisition cost. Capture existing demand."},{label:"Mixed (roughly even split)",detail:"Market is warm. Some pull, some push. Common in regions where awareness is building but not yet mature.",score:.10,signal:"positive",invest:"Where to invest: Moderate. Budget for both brand and direct sales."},{label:"Outbound dominant (70%+)",detail:"Every customer requires active prospecting. Higher CAC, more effort per deal.",score:0,signal:"caution",invest:"Where to invest: Highest acquisition cost. Make sure ACV and retention justify the spend."},{label:"Partner / channel driven",detail:"Revenue comes through resellers, integrations, or SI partners. Lower direct CAC, shared economics.",score:.10,signal:"positive",invest:"Where to invest: Different playbook \u2014 scale through channel investment, potentially more capital-efficient."},{label:"Don\u2019t have attribution data for this region",detail:"You can\u2019t forecast acquisition cost without knowing how current customers converted. Even 30 days of data sharpens the decision.",score:0,signal:"neutral",invest:"Where to invest: Instrument attribution by region before committing budget."}]},{id:"funnel",phase:1,stepNum:5,title:"Win/Loss Pattern",question:"Where do prospects in this region drop off compared to your core market?",context:"Stage by stage \u2014 awareness, demo, evaluation, close. The drop-off point tells you what\u2019s blocking growth and what kind of investment would fix it.",why:"A top-of-funnel problem needs content and visibility \u2014 relatively cheap. A close-rate problem may need a local entity, localized contracts, or in-region support \u2014 structurally more expensive. Knowing where the leak is tells you not just whether to invest, but where.",options:[{label:"Similar funnel to core market",detail:"Conversion rates within 80\u2013120% of core market at each stage. Playbook transfers. You\u2019re scaling an existing motion.",score:.20,signal:"strong",invest:"Where to invest: The engine works. Invest in volume."},{label:"Drops at top of funnel",detail:"Low awareness, but good conversion once prospects enter the pipeline. The product sells when people see it \u2014 they just don\u2019t know about you yet.",score:.10,signal:"positive",invest:"Where to invest: Regional content, events, localized SEO, timezone coverage. Cheapest fixes, highest leverage."},{label:"Drops at evaluation / mid-funnel",detail:"Prospects stall during evaluation. Missing integrations, compliance concerns, lack of local case studies, or competitive alternatives with local presence.",score:-.05,signal:"caution",invest:"Where to invest: Beyond sales headcount \u2014 product work, compliance, local proof points."},{label:"Drops at close",detail:"Strong pipeline, deals die at the finish line. Procurement complexity, pricing misalignment, need for local entity or support guarantees.",score:-.05,signal:"caution",invest:"Where to invest: Structural changes \u2014 local entity, adapted contracts, regional pricing."},{label:"Don\u2019t have funnel data by region",detail:"Without stage-by-stage data, you\u2019re guessing at what\u2019s blocking growth.",score:0,signal:"neutral",invest:"Where to invest: Analytics first, headcount second. 1\u20132 months of regional funnel data reveals the real bottleneck."}]},{id:"fixed_cost",phase:2,stepNum:6,title:"Fixed Cost \u2192 Payback Period",isCalcStep:true,calcType:"payback",question:"What\u2019s your estimated fixed cost to enter this region?",context:"Fixed cost covers everything you pay once to operate here \u2014 legal entity, compliance, localized content, first hires, tooling. This section calculates your payback period: how many months until the region\u2019s revenue recovers that investment.",why:"Payback period tells you how long your capital is tied up before this region contributes net-positive. Short payback means low capital risk \u2014 you\u2019re back to zero quickly and everything after is contribution. Long payback means you\u2019re carrying that investment on your P&L, which pressures cash flow and limits deployment elsewhere. Retention and velocity from Phase 1 directly affect your confidence in whether the region will actually generate the revenue needed to hit that timeline.",thresholds:[{max:6,label:"Under 6 months",detail:"Short payback. Current revenue covers your fixed cost within two quarters. You\u2019re not betting on future demand \u2014 you\u2019re formalizing traction that already exists.",signal:"strong",score:.20},{max:12,label:"6\u201312 months",detail:"Standard expansion payback. One year of regional revenue covers entry. Manageable if retention from Phase 1 is strong \u2014 payback assumes those customers stay through the breakeven window.",signal:"positive",score:.10},{max:24,label:"12\u201324 months",detail:"Extended payback. Fixed cost is high relative to current regional revenue. You\u2019re betting on revenue growth to hit this timeline, not just current run rate. Velocity and retention from Phase 1 need to support that bet.",signal:"caution",score:-.05},{max:Infinity,label:"24+ months",detail:"Long payback. Capital locked up 2+ years before breakeven. Requires high conviction in regional growth and confidence the capital isn\u2019t better deployed elsewhere \u2014 which is exactly what Phase 3 pressure-tests.",signal:"warning",score:-.15}]},{id:"variable_cost",phase:2,stepNum:7,title:"Variable Cost \u2192 Margin Comparison",isCalcStep:true,calcType:"margin",question:"What\u2019s your variable cost to serve one customer today \u2014 and how does your contribution margin in this region compare?",context:"Variable cost is what you incur servicing a customer \u2014 sales cycle, onboarding, support, account management on an ongoing basis. Input your current and regional variable cost per customer. The tool calculates contribution margin (ACV minus variable cost) for both and shows you the delta.",why:"Contribution margin is what you keep on every deal. If this region runs thinner, every new customer pulls your company-wide blended margin down \u2014 and that compounds as you scale. If it\u2019s equal or better, every new customer lifts it. This is the permanent financial profile of operating in this region.",thresholds:[{min:.01,label:"Regional margin is higher",detail:"Every customer here is more profitable than your current base. Combined with strong demand from Phase 1, this is the strongest expansion case \u2014 you\u2019re growing more profitable revenue.",signal:"strong",score:.20},{min:-.10,label:"Roughly equal (within 10%)",detail:"Economics transfer. No margin drag. Your financial model holds \u2014 expansion is a revenue growth play, not a margin risk.",signal:"positive",score:.10},{min:-.30,label:"Lower (10\u201330% below current)",detail:"Thinner margin per deal. Not a dealbreaker \u2014 but you need higher volume or stronger NRR from this region to deliver the same economic contribution.",signal:"caution",score:-.05},{min:-Infinity,label:"Significantly lower (30%+ below)",detail:"Structural margin compression. At scale, every customer from this region pulls your overall margin down. Needs a clear path to increasing regional ACV or reducing variable cost before scaling.",signal:"warning",score:-.15}]},{id:"opportunity_cost",phase:3,stepNum:8,title:"Opportunity Cost",question:"If you redirected the same resources elsewhere, what\u2019s the expected return?",context:"Every dollar spent here is a dollar not spent elsewhere. The real cost of this region is the return you forgo from your next best option \u2014 whether that\u2019s expanding domestically, entering another market, growing existing accounts, or investing in product. This section makes that trade-off explicit.",why:"A region can clear every signal in Phase 1 and show healthy economics in Phase 2 \u2014 and still not be the right move if there\u2019s a higher-return option available. The question isn\u2019t \u201cis this region good?\u201d It\u2019s \u201cis this the best use of the next dollar?\u201d",options:[{label:"Current alternatives are saturating",detail:"Diminishing returns in your current market \u2014 saturated segments, tapped-out territories, declining response rates. The marginal return on the next domestic dollar is falling.",score:.20,signal:"strong",invest:"What this means: When your current ceiling is visible, geographic expansion shifts from optional to necessary."},{label:"Comparable upside across options",detail:"This region and domestic alternatives have roughly similar expected returns. Genuine trade-off.",score:0,signal:"neutral",invest:"What this means: When ROI is comparable, the tiebreaker is strategic \u2014 geographic diversification, competitive positioning, first-mover advantage."},{label:"Current market has clearly higher ROI",detail:"Untapped domestic segments with higher expected returns and lower risk.",score:-.15,signal:"warning",invest:"What this means: Sequence matters. Capture the higher-return play first. Revisit this region when domestic returns diminish or regional signal strengthens."},{label:"Haven\u2019t modeled the comparison",detail:"Evaluating this region without comparing alternatives.",score:0,signal:"neutral",invest:"What this means: Even a rough estimate \u2014 expected return per $100K deployed here vs. your best alternative \u2014 sharpens the decision."}]}];
+
+const SS={strong:{bg:'var(--strong-bg)',border:'var(--strong-border)',text:'var(--strong-text)',label:'Strong signal'},positive:{bg:'var(--positive-bg)',border:'var(--positive-border)',text:'var(--positive-text)',label:'Positive signal'},neutral:{bg:'var(--neutral-bg)',border:'var(--neutral-border)',text:'var(--neutral-text)',label:'Neutral'},caution:{bg:'var(--caution-bg)',border:'var(--caution-border)',text:'var(--caution-text)',label:'Caution'},warning:{bg:'var(--warning-bg)',border:'var(--warning-border)',text:'var(--warning-text)',label:'Warning'}};
+const state={inputs:{},selections:{},calcResults:{},expandedStep:null,transitioning:false};
+
+function parseNum(s){return s?parseFloat(s.replace(/[^0-9.-]/g,'')):NaN}
+function fmtDollar(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0)}
+function fmtPct(n){return(n*100).toFixed(1)+'%'}
+
+function updateInputs(){const tr=parseNum(document.getElementById('totalRevenue').value),rr=parseNum(document.getElementById('regionRevenue').value),tl=parseNum(document.getElementById('totalLogos').value),rl=parseNum(document.getElementById('regionLogos').value),rn=document.getElementById('regionName').value||'this region';state.inputs={totalRev:tr,regionRev:rr,totalLogos:tl,regionLogos:rl,regionName:rn};const mb=document.getElementById('metricsBar'),ri=document.getElementById('ratioInsight');if(!isNaN(tr)&&!isNaN(rr)&&!isNaN(tl)&&!isNaN(rl)&&tr>0&&tl>0&&rl>0){const revPct=rr/tr,logoPct=rl/tl,cACV=tr/tl,rACV=rr/rl;Object.assign(state.inputs,{revPct,logoPct,companyACV:cACV,regionalACV:rACV});document.getElementById('metricRevPct').textContent=fmtPct(revPct);document.getElementById('metricLogoPct').textContent=fmtPct(logoPct);document.getElementById('metricCompanyACV').textContent=fmtDollar(cACV);document.getElementById('metricRegionalACV').textContent=fmtDollar(rACV);mb.classList.add('visible');const ratio=revPct/logoPct;let txt,sig,ai;if(ratio>2){ai=0;sig=SS.positive;txt='Revenue share ('+fmtPct(revPct)+') is significantly above logo share ('+fmtPct(logoPct)+'). Regional ACV is '+fmtDollar(rACV)+' vs. company-wide '+fmtDollar(cACV)+'. High ACV \u2014 strong pricing power, but concentrated in a few accounts.'}else if(ratio>1.15){ai=1;sig=SS.strong;txt='Revenue share ('+fmtPct(revPct)+') is above logo share ('+fmtPct(logoPct)+'). Regional ACV is '+fmtDollar(rACV)+' vs. company-wide '+fmtDollar(cACV)+'. Above-average ACV with enough logo diversity to suggest a pattern.'}else if(ratio>=.85){ai=2;sig=SS.positive;txt='Revenue share ('+fmtPct(revPct)+') roughly matches logo share ('+fmtPct(logoPct)+'). ACV parity \u2014 '+fmtDollar(rACV)+' regional vs. '+fmtDollar(cACV)+' company-wide. Your pricing and deal dynamics transfer.'}else{ai=3;sig=SS.caution;txt='Revenue share ('+fmtPct(revPct)+') is below logo share ('+fmtPct(logoPct)+'). Regional ACV is '+fmtDollar(rACV)+' vs. company-wide '+fmtDollar(cACV)+'. Broad adoption at lower price points \u2014 expansion economics need higher volume.'}state.selections.customer_economics=ai;ri.textContent=txt;ri.style.background=sig.bg;ri.style.borderColor=sig.border;ri.style.color=sig.text;ri.classList.add('visible');if(!state.expandedStep)state.expandedStep='velocity';render()}else{mb.classList.remove('visible');ri.classList.remove('visible');delete state.selections.customer_economics;render()}}
+
+['totalRevenue','regionRevenue','totalLogos','regionLogos','regionName'].forEach(function(id){document.getElementById(id).addEventListener('input',updateInputs)});
+
+function updatePayback(){var fc=parseNum(document.getElementById('fixedCostInput')?document.getElementById('fixedCostInput').value:''),rr=state.inputs.regionRev;if(isNaN(fc)||isNaN(rr)||rr<=0||fc<=0){delete state.calcResults.payback;delete state.selections.fixed_cost;render();return}var m=(fc/rr)*12;state.calcResults.payback=m;var step=STEPS.find(function(s){return s.id==='fixed_cost'});var idx=0;for(var i=0;i<step.thresholds.length;i++){if(m<=step.thresholds[i].max){idx=i;break}}state.selections.fixed_cost=idx;render()}
+
+function updateMargin(){var cvc=parseNum(document.getElementById('currentVCInput')?document.getElementById('currentVCInput').value:''),rvc=parseNum(document.getElementById('regionalVCInput')?document.getElementById('regionalVCInput').value:''),cACV=state.inputs.companyACV,rACV=state.inputs.regionalACV;if(isNaN(cvc)||isNaN(rvc)||isNaN(cACV)||isNaN(rACV)){delete state.calcResults.margin;delete state.selections.variable_cost;render();return}var cm=cACV-cvc,rm=rACV-rvc,d=cm>0?(rm-cm)/cm:0;state.calcResults.margin={currentMargin:cm,regionalMargin:rm,delta:d};var step=STEPS.find(function(s){return s.id==='variable_cost'});var idx=0;for(var i=0;i<step.thresholds.length;i++){if(d>=step.thresholds[i].min){idx=i;break}}state.selections.variable_cost=idx;render()}
+
+var CE_SCORES=[.15,.30,.25,.10],CE_SIGNALS=['positive','strong','positive','caution'];
+
+function getScore(){var t=0,c=0;if(state.selections.customer_economics!==undefined){t+=CE_SCORES[state.selections.customer_economics];c++}STEPS.forEach(function(s){if(state.selections[s.id]!==undefined){t+=(s.options||s.thresholds)[state.selections[s.id]].score;c++}});var mx=Math.max.apply(null,CE_SCORES)+STEPS.reduce(function(s,st){return s+Math.max.apply(null,(st.options||st.thresholds).map(function(o){return o.score}))},0),mn=Math.min.apply(null,CE_SCORES)+STEPS.reduce(function(s,st){return s+Math.min.apply(null,(st.options||st.thresholds).map(function(o){return o.score}))},0);return{total:t,count:c,normalized:mx!==mn?(t-mn)/(mx-mn):.5}}
+
+function getRec(n){if(n>=.70)return{verdict:"STRONG INVEST",pct:"75\u201390%",color:'#2E7D32',bg:'var(--strong-bg)',border:'var(--strong-border)',detail:"Signals converge. Short payback. Healthy or better margins. Current alternatives saturating.",action:"Dedicated regional hire(s) this quarter with 90-day gates."};if(n>=.50)return{verdict:"INVEST \u2014 TEST FIRST",pct:"55\u201370%",color:'#1565C0',bg:'var(--positive-bg)',border:'var(--positive-border)',detail:"Positive signals, reasonable payback, margins hold.",action:"2-quarter pilot with clear success gates."};if(n>=.30)return{verdict:"INVESTIGATE MORE",pct:"35\u201350%",color:'#F9A825',bg:'var(--neutral-bg)',border:'var(--neutral-border)',detail:"Mixed signals or meaningful unknowns.",action:"4\u20136 weeks deeper analysis \u2014 instrument funnel and attribution by region, customer interviews, competitive scan. Re-run with better inputs."};if(n>=.10)return{verdict:"HOLD",pct:"15\u201330%",color:'#E65100',bg:'var(--caution-bg)',border:'var(--caution-border)',detail:"Weak signal, long payback, thinner margins, or stronger alternatives.",action:"Focus on higher-return plays. Monitor regional traction organically. Revisit in 6 months."};return{verdict:"DO NOT INVEST",pct:"< 15%",color:'#C62828',bg:'var(--warning-bg)',border:'var(--warning-border)',detail:"Signals point away. Churn, declining share, poor unit economics.",action:"Diagnose root causes before revisiting expansion."}}
+
+function handleSelect(stepId,idx){if(state.transitioning)return;state.selections[stepId]=idx;state.transitioning=true;render();var si=STEPS.findIndex(function(s){return s.id===stepId});setTimeout(function(){state.transitioning=false;if(si<STEPS.length-1){state.expandedStep=STEPS[si+1].id}else{state.expandedStep=null}render();if(si<STEPS.length-1){var nc=document.querySelector('[data-step="'+STEPS[si+1].id+'"]');if(nc)nc.scrollIntoView({behavior:'smooth',block:'start'})}},3e3)}
+
+function toggleStep(id){if(state.transitioning)return;state.expandedStep=state.expandedStep===id?null:id;render()}
+
+function resetAll(){Object.keys(state.selections).forEach(function(k){if(k!=='customer_economics')delete state.selections[k]});state.calcResults={};state.expandedStep='velocity';state.transitioning=false;['fixedCostInput','currentVCInput','regionalVCInput'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''});render();document.getElementById('inputSection').scrollIntoView({behavior:'smooth'})}
+
+function copySummary(){var s=getScore(),rec=getRec(s.normalized),rn=state.inputs.regionName||'Target Region';var t='GEO EXPANSION ASSESSMENT: '+rn+'\nRecommendation: '+rec.verdict+' ('+rec.pct+' confidence)\n\nSIGNAL MAP:\n';if(state.selections.customer_economics!==undefined){var ls=['High ACV, concentrated','Above-avg ACV, diverse','ACV parity','Below-avg ACV, volume'];t+='\u2022 Customer Economics: '+ls[state.selections.customer_economics]+'\n'}STEPS.forEach(function(step){if(state.selections[step.id]!==undefined){var idx=state.selections[step.id];t+='\u2022 '+step.title+': '+(step.options||step.thresholds)[idx].label+'\n'}});if(state.calcResults.payback)t+='\nPayback Period: '+state.calcResults.payback.toFixed(0)+' months\n';if(state.calcResults.margin){t+='Current Margin/Customer: '+fmtDollar(state.calcResults.margin.currentMargin)+'\nRegional Margin/Customer: '+fmtDollar(state.calcResults.margin.regionalMargin)+'\n'}t+='\n'+rec.detail+'\n\u2192 '+rec.action;navigator.clipboard.writeText(t).then(function(){var btn=document.getElementById('copyBtn');btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy Summary'},2e3)})}
+
+function buildGauge(norm, rec) {
+  // Needle math: arc goes from left (180°) to right (0°)
+  // norm=0 → needle left, norm=1 → needle right
+  // theta from positive x-axis: (1-norm)*π
+  var theta = (1 - norm) * Math.PI;
+  var nX = (110 + 85 * Math.cos(theta)).toFixed(1);
+  var nY = (118 - 85 * Math.sin(theta)).toFixed(1);
+  var pct = Math.round(norm * 100);
+
+  return '<div class="visual-panel">'
+    + '<div class="panel-label">Confidence Meter</div>'
+    + '<svg viewBox="0 0 220 128" width="100%" style="max-width:220px;">'
+    // 3 zone arcs — total arc π*95 ≈ 298.5, each zone = 99.5
+    // Orange: left third (stop/hold)
+    + '<path d="M 18,118 A 95,95 0 0,1 202,118" fill="none" stroke="#E65100" stroke-width="14" stroke-linecap="butt" stroke-dasharray="99.5 199"/>'
+    // Blue: middle third (proceed carefully)
+    + '<path d="M 18,118 A 95,95 0 0,1 202,118" fill="none" stroke="#1565C0" stroke-width="14" stroke-linecap="butt" stroke-dasharray="99.5 199" stroke-dashoffset="-99.5"/>'
+    // Green: right third (invest)
+    + '<path d="M 18,118 A 95,95 0 0,1 202,118" fill="none" stroke="#2E7D32" stroke-width="14" stroke-linecap="butt" stroke-dasharray="99.5 199" stroke-dashoffset="-199"/>'
+    // Needle
+    + '<line x1="110" y1="118" x2="'+nX+'" y2="'+nY+'" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>'
+    + '<circle cx="110" cy="118" r="6" fill="#1A1A1A"/>'
+    + '<circle cx="110" cy="118" r="3" fill="white"/>'
+    + '</svg>'
+    + '<div class="gauge-center">'
+    + '<span class="gauge-pct-num" style="color:'+rec.color+'">'+pct+'%</span>'
+    + '<span class="gauge-pct-unit">confidence</span>'
+    + '</div>'
+    + '<div class="gauge-ends">'
+    + '<span class="gauge-end-label" style="color:#E65100;">Stop</span>'
+    + '<span class="gauge-end-label" style="color:#2E7D32;">Go</span>'
+    + '</div>'
+    + '</div>';
+}
+
+function buildRadar(rec) {
+  var sigToVal = {strong:1.0, positive:0.75, neutral:0.5, caution:0.3, warning:0.1};
+  var sigToColor = {strong:'#2E7D32', positive:'#1565C0', neutral:'#F9A825', caution:'#E65100', warning:'#C62828'};
+  var R = 78;
+  // 6 axes: top, top-right, bottom-right, bottom, bottom-left, top-left
+  var axDirs = [[0,-1],[0.866,-0.5],[0.866,0.5],[0,1],[-0.866,0.5],[-0.866,-0.5]];
+  var radarIds = ['customer_economics','velocity','retention','attribution','funnel','opportunity_cost'];
+  var radarLabels = ['ACV','Velocity','Retention','Attribution','Win/Loss','Opp. Cost'];
+  // Label offsets outward
+  var labelOffsets = [[0,-92],[84,-46],[84,46],[0,96],[-84,46],[-84,-46]];
+  var labelAnchors = ['middle','start','start','middle','end','end'];
+
+  var sigs = radarIds.map(function(id) {
+    if (id === 'customer_economics') {
+      return state.selections.customer_economics !== undefined ? CE_SIGNALS[state.selections.customer_economics] : null;
+    }
+    var step = STEPS.find(function(s){ return s.id === id; });
+    if (step && state.selections[id] !== undefined) {
+      return (step.options || step.thresholds)[state.selections[id]].signal;
+    }
+    return null;
+  });
+
+  var pts = radarIds.map(function(id, i) {
+    var sig = sigs[i];
+    var val = sig ? (sigToVal[sig] || 0.5) : 0.2;
+    return [(val * R * axDirs[i][0]).toFixed(1), (val * R * axDirs[i][1]).toFixed(1)];
+  });
+
+  var polyPts = pts.map(function(p){ return p[0]+','+p[1]; }).join(' ');
+
+  var dots = pts.map(function(p, i) {
+    var col = sigs[i] ? (sigToColor[sigs[i]] || '#DDD9D2') : '#DDD9D2';
+    return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="4.5" fill="'+col+'"/>';
+  }).join('');
+
+  var labels = radarLabels.map(function(lbl, i) {
+    var o = labelOffsets[i];
+    return '<text x="'+o[0]+'" y="'+o[1]+'" text-anchor="'+labelAnchors[i]+'" font-family="Satoshi,sans-serif" font-size="9.5" font-weight="700" fill="#5C5C5C">'+lbl+'</text>';
+  }).join('');
+
+  var rMax = R;
+  var r75 = (R*0.75).toFixed(1), r50 = (R*0.50).toFixed(1), r25 = (R*0.25).toFixed(1);
+  function hexPts(r){ return axDirs.map(function(a){ return [(r*a[0]).toFixed(1),(r*a[1]).toFixed(1)].join(','); }).join(' '); }
+  var spokes = axDirs.map(function(a){ return '<line x1="0" y1="0" x2="'+(rMax*a[0]).toFixed(1)+'" y2="'+(rMax*a[1]).toFixed(1)+'" stroke="#DDD9D2" stroke-width="0.75"/>'; }).join('');
+
+  // legend — only show signals that are actually present
+  var legendSigs = [];
+  ['strong','positive','neutral','caution','warning'].forEach(function(sig){
+    if (sigs.indexOf(sig) !== -1 && legendSigs.indexOf(sig) === -1) legendSigs.push(sig);
+  });
+  var legendLabels = {strong:'Strong',positive:'Positive',neutral:'Neutral',caution:'Caution',warning:'Warning'};
+  var legendColors = {strong:'#2E7D32',positive:'#1565C0',neutral:'#F9A825',caution:'#E65100',warning:'#C62828'};
+  var legend = legendSigs.map(function(sig){
+    return '<div class="legend-item"><div class="legend-pip" style="background:'+legendColors[sig]+';"></div>'+legendLabels[sig]+'</div>';
+  }).join('');
+
+  return '<div class="visual-panel">'
+    + '<div class="panel-label">Signal Shape</div>'
+    + '<svg viewBox="0 0 220 210" width="100%" style="max-width:220px;">'
+    + '<g transform="translate(110,105)">'
+    + '<polygon points="'+hexPts(rMax)+'" fill="none" stroke="#DDD9D2" stroke-width="0.75"/>'
+    + '<polygon points="'+hexPts(R*0.75)+'" fill="none" stroke="#DDD9D2" stroke-width="0.75"/>'
+    + '<polygon points="'+hexPts(R*0.50)+'" fill="none" stroke="#DDD9D2" stroke-width="0.75"/>'
+    + '<polygon points="'+hexPts(R*0.25)+'" fill="none" stroke="#DDD9D2" stroke-width="0.75"/>'
+    + spokes
+    + '<polygon points="'+polyPts+'" fill="'+rec.color+'" fill-opacity="0.10" stroke="'+rec.color+'" stroke-width="1.75" stroke-linejoin="round"/>'
+    + dots
+    + labels
+    + '</g></svg>'
+    + '<div class="radar-legend">'+legend+'</div>'
+    + '</div>';
+}
+
+function render(){
+  var s=getScore(),cnt=s.count,norm=s.normalized,rec=getRec(norm),ts=STEPS.length+1;
+  var allIds=['customer_economics'].concat(STEPS.map(function(s){return s.id}));
+
+  var completedSteps = cnt;
+  var totalSteps = 8;
+  var fillPct = (completedSteps / totalSteps * 100).toFixed(0);
+  document.getElementById('progressBar').innerHTML =
+    '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+fillPct+'%"></div></div>'
+    + '<span class="progress-step-count">'+completedSteps+' / '+totalSteps+'</span>';
+
+  var cp=1,html='';
+  STEPS.forEach(function(step){
+    if(step.phase===2&&cp===1){html+='<div class="phase-header"><span class="phase-title">Phase 2: Operating Economics</span><span class="phase-question">Can you capture it profitably?</span></div>';cp=2}
+    if(step.phase===3&&cp===2){html+='<div class="phase-header"><span class="phase-title">Phase 3: Opportunity Cost</span><span class="phase-question">Is this the best use of the next dollar?</span></div>';cp=3}
+    var isExp=state.expandedStep===step.id,isAns=state.selections[step.id]!==undefined,opts=step.options||step.thresholds,sel=isAns?opts[state.selections[step.id]]:null,sc=sel?SS[sel.signal]:null;
+    var ns=isAns?'background:'+sc.bg+';color:'+sc.text+';border-color:'+sc.border:'';
+    var pv=isAns&&!isExp?'<div class="step-preview" style="color:'+sc.text+'">'+sel.label+' \u2192 '+sc.label+'</div>':'';
+    var body='<div class="step-question">'+step.question+'</div><div class="step-context">'+step.context+'</div><div class="step-why"><strong>Why this matters:</strong> '+step.why+'</div>';
+    if(step.isCalcStep&&step.calcType==='payback'){
+      var pb=state.calcResults.payback,mt=pb!==undefined?step.thresholds.find(function(t){return pb<=t.max}):null,tss=mt?SS[mt.signal]:null,v=document.getElementById('fixedCostInput')?document.getElementById('fixedCostInput').value:'';
+      body+='<div class="calc-input-row"><div class="input-group"><label class="input-label">Estimated Fixed Cost ($)</label><input class="input-field" type="text" id="fixedCostInput" placeholder="e.g. 500,000" inputmode="numeric" oninput="updatePayback()" value="'+v+'"></div><div></div></div>';
+      if(pb!==undefined){body+='<div class="calc-result visible" style="background:'+tss.bg+'"><div class="calc-result-number" style="color:'+tss.text+'">'+pb.toFixed(0)+' months</div><div class="calc-result-label">Estimated payback period</div></div><div class="calc-interpretation visible" style="background:'+tss.bg+';border-color:'+tss.border+';color:'+tss.text+'"><strong>'+mt.label+'</strong> \u2014 '+mt.detail+'</div>'}
+    } else if(step.isCalcStep&&step.calcType==='margin'){
+      var m=state.calcResults.margin,mt2=m?step.thresholds.find(function(t){return m.delta>=t.min}):null,tss2=mt2?SS[mt2.signal]:null,v1=document.getElementById('currentVCInput')?document.getElementById('currentVCInput').value:'',v2=document.getElementById('regionalVCInput')?document.getElementById('regionalVCInput').value:'';
+      body+='<div class="calc-input-row"><div class="input-group"><label class="input-label">Current Variable Cost / Customer ($)</label><input class="input-field" type="text" id="currentVCInput" placeholder="e.g. 8,000" inputmode="numeric" oninput="updateMargin()" value="'+v1+'"></div><div class="input-group"><label class="input-label">Regional Variable Cost / Customer ($)</label><input class="input-field" type="text" id="regionalVCInput" placeholder="e.g. 12,000" inputmode="numeric" oninput="updateMargin()" value="'+v2+'"></div></div>';
+      if(m){var dp=(m.delta*100).toFixed(0),dl=m.delta>.01?dp+'% higher':m.delta<-.01?Math.abs(dp)+'% lower':'roughly equal';body+='<div class="calc-result visible" style="background:'+tss2.bg+'"><div class="calc-result-number" style="color:'+tss2.text+'">'+dl+'</div><div class="calc-result-label">Regional contribution margin vs. current ('+fmtDollar(m.regionalMargin)+' vs. '+fmtDollar(m.currentMargin)+')</div></div><div class="calc-interpretation visible" style="background:'+tss2.bg+';border-color:'+tss2.border+';color:'+tss2.text+'"><strong>'+mt2.label+'</strong> \u2014 '+mt2.detail+'</div>'}
+    } else {
+      body+='<div class="options-list">';
+      step.options.forEach(function(opt,oi){
+        var isSel=state.selections[step.id]===oi,os=SS[opt.signal],cs=isSel?'border-color:'+os.border+';background:'+os.bg:'',ls=isSel?'color:'+os.text:'',bs=isSel?'background:'+os.border+';color:#FFF':'background:transparent;color:transparent';
+        body+='<div class="option-card signal-'+opt.signal+(isSel?' selected':'')+'" style="'+cs+'" onclick="handleSelect(\''+step.id+'\','+oi+')"><div class="option-top"><div class="option-label" style="'+ls+'">'+opt.label+'</div><span class="option-badge" style="'+bs+'">'+os.label+'</span></div><div class="option-detail">'+opt.detail+'</div>'+(opt.invest?'<div class="option-invest" style="'+(isSel?'color:'+os.text:'')+'">'+opt.invest+'</div>':'')+'</div>';
+      });
+      body+='</div>';
+    }
+    html+='<div class="step-card '+(isExp?'expanded':'')+'" data-step="'+step.id+'"><div class="step-header" onclick="toggleStep(\''+step.id+'\')"><div class="step-header-left"><span class="step-number" style="'+ns+'">'+(isAns?'\u2713':step.stepNum)+'</span><div><div class="step-title-text">'+step.title+'</div>'+pv+'</div></div><span class="chevron '+(isExp?'open':'')+'">\u25BE</span></div><div class="step-body">'+body+'</div></div>';
+  });
+  var activeId=document.activeElement?document.activeElement.id:null;
+  var activeStart=activeId&&document.activeElement.selectionStart!==undefined?document.activeElement.selectionStart:null;
+  var activeEnd=activeId&&document.activeElement.selectionEnd!==undefined?document.activeElement.selectionEnd:null;
+  document.getElementById('stepsContainer').innerHTML=html;
+  if(activeId){var rel=document.getElementById(activeId);if(rel){rel.focus();try{if(activeStart!==null)rel.setSelectionRange(activeStart,activeEnd);}catch(e){}}}
+
+  var scoreEl=document.getElementById('runningScore');
+  if(cnt>0){
+    scoreEl.classList.add('visible');
+    document.getElementById('scoreLabel').textContent=cnt+'/'+ts+' steps completed';
+    document.getElementById('scoreFill').style.width=norm*100+'%';
+    document.getElementById('scoreFill').style.background=rec.color;
+    document.getElementById('scoreProbability').style.color=rec.color;
+    document.getElementById('scoreProbability').textContent=cnt===ts?rec.pct:'...';
+  } else {
+    scoreEl.classList.remove('visible');
+  }
+
+  var recEl=document.getElementById('recommendation');
+  if(cnt===ts){
+    // Build signal tags
+    var ceL=['High ACV, concentrated','Above-avg ACV, diverse','ACV parity','Below-avg ACV, volume'];
+    var tags='';
+    if(state.selections.customer_economics!==undefined){var sg=SS[CE_SIGNALS[state.selections.customer_economics]];tags+='<span class="signal-tag" style="background:'+sg.bg+';color:'+sg.text+';border-color:'+sg.border+'">Customer Economics: '+ceL[state.selections.customer_economics]+'</span>'}
+    STEPS.forEach(function(step){
+      if(state.selections[step.id]!==undefined){var idx=state.selections[step.id],sg2=SS[(step.options||step.thresholds)[idx].signal];tags+='<span class="signal-tag" style="background:'+sg2.bg+';color:'+sg2.text+';border-color:'+sg2.border+'">'+step.title+': '+(step.options||step.thresholds)[idx].label+'</span>'}
+    });
+
+    // Build gauge + radar
+    var gaugeHtml = buildGauge(norm, rec);
+    var radarHtml = buildRadar(rec);
+    var visualsHtml = '<div class="visuals-row">'+gaugeHtml+radarHtml+'</div>';
+
+    recEl.innerHTML=
+      '<div class="rec-header">'
+      +'<div class="rec-eyebrow" style="color:'+rec.color+'">RECOMMENDATION</div>'
+      +'<div class="rec-verdict" style="color:'+rec.color+'">'+rec.verdict+'</div>'
+      +'</div>'
+      +'<div class="rec-body">'
+      +'<div class="rec-detail">'+rec.detail+'<br><br>\u2192 '+rec.action+'</div>'
+      + visualsHtml
+      +'<div class="signal-map"><div class="signal-map-label">SIGNAL MAP</div><div class="signal-tags">'+tags+'</div></div>'
+      +'<div class="rec-actions">'
+      +'<button class="btn btn-primary" id="copyBtn" style="background:'+rec.color+'" onclick="copySummary()">Copy Summary</button>'
+      +'<button class="btn btn-secondary" style="color:'+rec.color+';border-color:'+rec.color+'" onclick="resetAll()">Reset & Run Again</button>'
+      +'</div>'
+      +'</div>';
+
+    recEl.style.background=rec.bg;
+    recEl.style.borderColor=rec.color;
+    recEl.classList.add('visible');
+    setTimeout(function(){recEl.scrollIntoView({behavior:'smooth',block:'start'})},100);
+  } else {
+    recEl.classList.remove('visible');
+  }
+}
+
+render();
+</script>
+</body>
+</html>
