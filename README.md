@@ -58,4 +58,4 @@ The tool does not just collect inputs. It turns them into an executive-ready vie
 - **Rapid prototyping:** shipped a polished browser-based app and deployed it on Vercel
 <br>
 
-### Built With: `HTML` `CSS` `JavaScript` `Vercel`
+### Built With: `Claude` `HTML` `Vercel`
