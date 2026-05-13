@@ -59,3 +59,11 @@ The tool does not just collect inputs. It turns them into an executive-ready vie
 <br>
 
 ### Built With: `Claude` `HTML` `Vercel`
+
+### Product Preview
+
+Starts with your economics: ![Geo Expansion Framework input](<./assets/Geo Expansion Decision Framework Pic 1.png>)
+
+Ends with a clear expansion verdict: ![Geo Expansion Framework output](<./assets/Geo Expansion Decision Framework Pic 2.png>)
+
+
